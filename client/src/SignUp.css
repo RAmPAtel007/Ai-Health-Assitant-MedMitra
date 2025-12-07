@@ -1,0 +1,103 @@
+/* Signup.css */
+
+.signup-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 95%;
+  margin: auto;
+  gap: 40px;
+  padding: 30px;
+  flex-wrap: wrap;
+}
+
+/* Card sections */
+.signup-section {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.signup-section:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* Left column slightly wider */
+.signup-section:first-child {
+  flex: 0.8;
+}
+
+/* Headings */
+.signup-section h5 {
+  font-weight: 600;
+  color: #007bff;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #007bff;
+  display: inline-block;
+  padding-bottom: 4px;
+}
+
+/* Input styling */
+.form-control {
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 15px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-control:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 6px rgba(0, 123, 255, 0.4);
+}
+
+/* Labels */
+label strong {
+  color: #333;
+}
+
+/* Button */
+.btn-primary {
+  background: linear-gradient(90deg, #007bff, #00aaff);
+  border: none;
+  padding: 12px;
+  font-weight: 600;
+  transition: background 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(90deg, #006ae0, #0099ee);
+}
+
+/* Login button */
+.btn-outline-light {
+  border-color: #007bff !important;
+  color: #007bff !important;
+  font-weight: 500;
+}
+
+.btn-outline-light:hover {
+  background: #007bff !important;
+  color: white !important;
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+  .signup-container {
+    flex-direction: column;
+    gap: 25px;
+  }
+
+  .signup-section:first-child {
+    flex: 1;
+  }
+
+  .signup-section {
+    width: 100%;
+  }
+}

@@ -1,0 +1,387 @@
+/* ===== PAGE BACKGROUND ===== */
+.home-container {
+  min-height: 100vh;
+  width: 100%;
+  background: linear-gradient(to bottom right, #4ca9ff, #6ed4ff);
+  padding: 40px 0;
+  font-family: "Poppins", sans-serif;
+  color: #0f1724;
+}
+
+/* ===== HEADER ===== */
+.home-header {
+  text-align: center;
+  color: white;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 100;
+  padding-top: 10px;
+}
+
+.home-header h2 {
+  font-size: 34px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+/* ===== DASHBOARD CARDS WRAPPER ===== */
+.dashboard-wrapper {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 25px;
+  margin-top: 30px;
+  padding: 10px 30px;
+}
+
+/* ===== WHITE FEATURE CARDS ===== */
+.feature-card {
+  width: 320px;
+  background: white;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0px 5px 18px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: 0.2s ease-in-out;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0px 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.feature-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-top: 10px;
+  color: #0b1220;
+}
+
+.feature-desc {
+  margin-top: 6px;
+  font-size: 14px;
+  color: #555;
+}
+
+/* ===== VACCINATION FORM CARD ===== */
+.vaccine-form {
+  max-width: 700px;
+  width: calc(100% - 60px);
+  background: #ffffff;
+  margin: 30px auto;
+  padding: 25px;
+  border-radius: 14px;
+  box-shadow: 0 5px 18px rgba(0,0,0,0.15);
+}
+
+.vaccine-form h3 {
+  margin-bottom: 15px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0b1220;
+}
+
+.vaccine-form input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.vaccine-form button {
+  width: 100%;
+  background: #007bff;
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.vaccine-form button:hover {
+  background: #005fcc;
+}
+
+/* ===== PROFILE ICON ===== */
+.profile-container {
+  position: fixed;
+  top: 18px;
+  left: 20px;          /* left side icon */
+  cursor: pointer;
+  z-index: 2200;
+  display: flex;
+  align-items: center;
+}
+
+/* small circle icon style override (if using FaUserCircle) */
+.profile-icon {
+  background: rgba(255,255,255,0.9);
+  border-radius: 50%;
+  padding: 6px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+  color: #2b6cb0;
+}
+
+/* ===== PROFILE CARD ===== */
+.profile-card {
+  position: fixed;
+  top: 70px;               /* place below header and icon */
+  left: 20px;
+  width: 320px;
+  max-height: 70vh;        /* avoid covering whole screen */
+  overflow-y: auto;
+  background: white;
+  padding: 18px;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(8, 35, 63, 0.18);
+  z-index: 2300;
+  color: #0b1220;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* profile fields */
+.profile-card h3 {
+  margin: 0 0 6px 0;
+  font-size: 20px;
+  color: #0b1220;
+}
+
+.profile-card p {
+  margin: 0;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+/* small label for each field */
+.profile-card .label {
+  font-weight: 600;
+  font-size: 13px;
+  color: #465569;
+  margin-top: 8px;
+}
+
+/* Edit button inside card */
+.profile-card .edit-btn {
+  margin-top: 12px;
+  align-self: flex-start;
+  background: #007bff;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+/* ensure visibility for empty states */
+.profile-placeholder {
+  color: #777;
+  font-style: italic;
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+/* ===== FEATURE ROW 2 (push down) ===== */
+.feature-row-2 {
+  display: flex;
+  gap: 25px;
+  margin-top: 80px;   /* moves Hospital Finder row downward */
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* SMOOTH APPEAR ANIMATION */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== EDIT POPUP OVERLAY ===== */
+.edit-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999; /* HIGHEST PRIORITY */
+}
+
+/* ===== EDIT BOX ===== */
+.edit-box {
+  width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.edit-box h3 {
+  font-size: 24px;
+  margin-bottom: 15px;
+  text-align: center;
+  font-weight: 700;
+}
+
+/* INPUT FIELDS */
+.edit-box input {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 14px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  font-size: 15px;
+  background: #f8f8f8;
+}
+
+/* BUTTONS */
+.save-btn, .cancel-btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-right: 10px;
+}
+
+.save-btn {
+  background: #007bff;
+  color: white;
+}
+
+.cancel-btn {
+  background: #666;
+  color: white;
+}
+
+.save-btn:hover {
+  background: #005fcc;
+}
+
+.cancel-btn:hover {
+  background: #444;
+}
+
+/* FORM INPUTS */
+.edit-box input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  border: 1px solid #bbb;
+  font-size: 15px;
+}
+
+/* SAVE / CANCEL BUTTONS */
+.save-btn {
+  background: #007bff;
+  color: white;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-right: 10px;
+  font-size: 14px;
+}
+
+.cancel-btn {
+  background: #555;
+  color: white;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.save-btn:hover {
+  background: #005fcc;
+}
+
+.cancel-btn:hover {
+  background: #333;
+}
+
+/* small responsive tweaks */
+@media (max-width: 900px) {
+  .feature-card, .profile-card { width: calc(100% - 40px); left: 20px; right: 20px; }
+  .profile-card { position: relative; top: 0; left: 0; margin: 10px auto; max-height: none; }
+  .profile-container { position: relative; top: 0; left: 0; margin-left: 20px; }
+  .dashboard-wrapper { padding: 10px; gap: 16px; }
+}
+
+/* ===================== HEALTH TIPS POPUP ===================== */
+.tips-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 5000;
+}
+
+.tips-box {
+  width: 420px;
+  background: #ffffff;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.tips-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.tip-item {
+  background: #f4f9ff;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-left: 4px solid #4ca9ff;
+  border-radius: 6px;
+  font-size: 15px;
+  color: #333;
+}
+
+.close-tips {
+  width: 100%;
+  background: #007bff;
+  color: white;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  margin-top: 15px;
+  cursor: pointer;
+}
+
+.close-tips:hover {
+  background: #005fcc;
+}
+
+.home-container {
+  min-height: 100vh;
+  width: 100%;
+  background-image: url("/image3.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  padding: 40px 0;
+  font-family: "Poppins", sans-serif;
+}

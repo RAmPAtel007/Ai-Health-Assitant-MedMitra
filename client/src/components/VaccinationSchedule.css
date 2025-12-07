@@ -1,0 +1,5 @@
+.vax-widget { margin: 16px 0; padding: 12px; border-radius: 8px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.vax-cards { display:flex; flex-wrap:wrap; gap:12px; }
+.vax-card { width:220px; border:1px solid #eee; padding:12px; border-radius:8px; background:#fafafa; }
+.vax-card h4 { margin:0 0 6px 0; }
+.mark-btn { margin-top:8px; padding:6px 10px; background:#14B8A6; color:#fff; border:none; border-radius:6px; cursor:pointer; }

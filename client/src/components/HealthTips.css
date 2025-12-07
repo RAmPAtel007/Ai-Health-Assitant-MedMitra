@@ -1,0 +1,49 @@
+.tips-container {
+  width: 100%;
+  min-height: 100vh;
+  padding: 40px 20px;
+  background: linear-gradient(to bottom right, #4ca9ff, #6ed4ff);
+  font-family: "Poppins", sans-serif;
+}
+
+.tips-title {
+  text-align: center;
+  color: white;
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 30px;
+}
+
+.tips-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 70%;
+  margin: auto;
+}
+
+.tip-card {
+  background: white;
+  padding: 18px 20px;
+  border-radius: 12px;
+  box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.15);
+  transition: 0.3s;
+}
+
+.tip-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0px 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.tip-number {
+  font-weight: 600;
+  color: #007bff;
+  font-size: 14px;
+}
+
+.tip-text {
+  margin-top: 6px;
+  font-size: 16px;
+  color: #444;
+  line-height: 1.4;
+}

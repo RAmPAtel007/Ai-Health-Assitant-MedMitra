@@ -1,0 +1,39 @@
+.notify-box {
+  position: fixed;
+  top: 110px;          /* push more downward */
+  right: 20px;         /* stay close to the right edge */
+  width: 220px;        /* reduced width */
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.20);
+  z-index: 2000;       /* stays above cards */
+  animation: fadeIn 0.25s ease-in-out;
+}
+
+.notify-title {
+  font-weight: bold;
+  display: block;
+  margin-bottom: 6px;
+  font-size: 15px;
+}
+
+.notify-item {
+  background: #f4f9ff;
+  padding: 8px;
+  margin-bottom: 6px;
+  border-left: 4px solid #3da9fc;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.none {
+  color: gray;
+  font-size: 13px;
+}
+
+/* Smooth fade */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
