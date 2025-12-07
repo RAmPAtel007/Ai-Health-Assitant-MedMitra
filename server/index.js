@@ -1,4 +1,5 @@
 // index.js (Backend - Node + Express)
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -12,8 +13,7 @@ app.use(cors());
 // -----------------------------------------
 // MongoDB Connection
 // -----------------------------------------
-mongoose
-  .connect("mongodb://127.0.0.1:27017/employee")
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.log("MongoDB Error:", err));
 
@@ -331,6 +331,8 @@ app.get("/hospitals", async (req, res) => {
 // -----------------------------------------
 // Start Server
 // -----------------------------------------
-app.listen(3001, () => {
-  console.log("Server running on port 3001");
+const PORT = process.env.PORT || 3001;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
