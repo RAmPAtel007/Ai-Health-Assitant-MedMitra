@@ -25,43 +25,65 @@ function Login() {
   };
 
   return (
-    <div className="login-bg">
+    <div className="login-page">
       <div className="login-container">
-        <h2 className="login-title">Login</h2>
-
-        <form onSubmit={handleSubmit} className="login-form">
-          <h5>e-mail</h5>
-
-          <input
-            type="email"
-            className="form-control"
-            placeholder="Enter Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-
-          <h5>password</h5>
-          <input
-            type="password"
-            className="form-control"
-            placeholder="Enter Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-
-
-          <button type="submit" className="btn btn-primary w-100 mt-3">
-            Login
-          </button>
-
-          <Link to="/register">
-            <button type="button" className="btn btn-outline-light w-100 mt-3">
-              Create Account
-            </button>
+        <div className="login-card">
+          <Link to="/" className="back-link">
+            ← Back to Home
           </Link>
-        </form>
+          
+          <div className="login-logo">
+            <div className="logo-icon-login">
+              <span>M</span>
+            </div>
+            <span className="logo-text-login">Medmitra</span>
+          </div>
+
+          <h2 className="login-title">Welcome Back</h2>
+          <p className="login-subtitle">Sign in to continue your healthcare journey</p>
+
+          <form onSubmit={handleSubmit} className="login-form">
+            <div className="form-group">
+              <label htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                className="form-input"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                className="form-input"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <button type="submit" className="btn-login-submit">
+              Sign In
+            </button>
+
+            <div className="divider">
+              <span>or</span>
+            </div>
+
+            <Link to="/register">
+              <button type="button" className="btn-create-account">
+                Create New Account
+              </button>
+            </Link>
+          </form>
+        </div>
       </div>
     </div>
   );
