@@ -15,13 +15,19 @@ function Login() {
       .post("http://localhost:3001/login", { email, password })
       .then((res) => {
         if (res.data.status === "Success") {
+          // Store user identifier if needed (e.g. token or email)
           localStorage.setItem("userEmail", email);
           navigate("/home");
         } else {
-          alert(res.data.status);
+          // If login fails, alert user and clear password field
+          alert(res.data.status || "Login failed");
+          setPassword(""); 
         }
       })
-      .catch((err) => console.log(err));
+      .catch((err) => {
+        console.log(err);
+        alert("An error occurred. Please try again.");
+      });
   };
 
   return (
@@ -36,6 +42,7 @@ function Login() {
             <div className="logo-icon-login">
               <span>M</span>
             </div>
+            {/* Medmitra Logo Text */}
             <span className="logo-text-login">Medmitra</span>
           </div>
 

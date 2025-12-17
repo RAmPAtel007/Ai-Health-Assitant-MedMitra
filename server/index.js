@@ -7,11 +7,9 @@ const EmployeeModel = require("./models/Employee");
 const cron = require("node-cron");
 
 const app = express();
+const bcrypt = require("bcryptjs");
 app.use(express.json());
-app.use(cors({
-    origin : "http://localhost:5173",
-    credentials:true
-}));
+app.use(cors());
 
 // -----------------------------------------
 // MongoDB Connection
@@ -20,32 +18,80 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.log("MongoDB Error:", err));
 
+
 // -----------------------------------------
-// Register User
+// Register User (UPDATED: Strong Password + Hashing)
 // -----------------------------------------
-app.post("/register", (req, res) => {
-  EmployeeModel.create(req.body)
-    .then((emp) => res.json(emp))
-    .catch((err) => res.status(500).json({ error: err.message }));
+app.post("/register", async (req, res) => {
+  try {
+    const { name, email, password, ...otherData } = req.body;
+
+    // 1. Check if user already exists
+    const existingUser = await EmployeeModel.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    // 2. STRONG PASSWORD VALIDATION (Stops creation if weak)
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({ 
+        message: "Password must be at least 8 characters long, contain one uppercase, one lowercase, one number, and one special character." 
+      });
+    }
+
+    // 3. HASH PASSWORD
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // 4. SAVE USER WITH HASHED PASSWORD
+    const newUser = await EmployeeModel.create({
+      name,
+      email,
+      password: hashedPassword, // Saving the hash
+      ...otherData
+    });
+
+    res.status(201).json(newUser);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // -----------------------------------------
 // Login
 // -----------------------------------------
-app.post("/login", (req, res) => {
+
+// -----------------------------------------
+// Login (UPDATED: Hash Comparison)
+// -----------------------------------------
+// -----------------------------------------
+// Login (CORRECTED)
+// -----------------------------------------
+app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
-  EmployeeModel.findOne({ email })
-    .then((user) => {
-      if (!user) return res.json({ status: "No record existed" });
+  try {
+    const user = await EmployeeModel.findOne({ email });
 
-      if (user.password === password) {
-        return res.json({ status: "Success" });
-      } else {
-        return res.json({ status: "Incorrect password" });
-      }
-    })
-    .catch((err) => res.json({ status: "Error", error: err }));
+    if (!user) {
+      return res.json({ status: "No record existed" });
+    }
+
+    // FIX: Pass the PLAIN 'password' directly. 
+    // bcrypt will extract the salt from 'user.password' automatically.
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (isMatch) {
+      return res.json({ status: "Success", user: user });
+    } else {
+      return res.json({ status: "Incorrect password" });
+    }
+  } catch (err) {
+    res.json({ status: "Error", error: err.message });
+  }
 });
 
 // -----------------------------------------
