@@ -27,7 +27,7 @@ const VapiWidget = () => {
       </style>
 
       <vapi-widget
-        public-key="62ff7d1e-8f8c-4ef8-8aaf-2244c3d76eb4"
+        public-key="988cddd9-1a76-4abd-8c8f-8e7f06197e14"
         assistant-id="74f2e57b-87d3-419f-8c88-daad57c4ec05"
         mode="chat"
         theme="dark"
@@ -36,7 +36,7 @@ const VapiWidget = () => {
       ></vapi-widget>
 
       <vapi-widget
-        public-key="62ff7d1e-8f8c-4ef8-8aaf-2244c3d76eb4"
+        public-key="988cddd9-1a76-4abd-8c8f-8e7f06197e14"
         assistant-id="74f2e57b-87d3-419f-8c88-daad57c4ec05"
         mode="voice"
         theme="dark"
