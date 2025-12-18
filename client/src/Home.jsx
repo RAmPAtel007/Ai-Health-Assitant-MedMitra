@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-// Home.js - FIXED: Pending Count (Immediate Load) + Hospital Map URL
+// Home.js - FIXED: Profile City Search + Top Rated List
 
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom"; 
@@ -15,7 +15,7 @@ import {
   FaLightbulb,
   FaCalendarAlt,
   FaSearch,
-  FaStar,
+  FaStar, // Ensure this is imported
   FaTimes,
   FaRobot,
   FaMagic,
@@ -48,7 +48,7 @@ function Home() {
   // STATE MANAGEMENT
   const [showProfile, setShowProfile] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [userLocation, setUserLocation] = useState(null);
+  const [userLocation, setUserLocation] = useState(null); // Will store City Coordinates
   
   // Modals
   const [showHealthTips, setShowHealthTips] = useState(false);
@@ -56,6 +56,7 @@ function Home() {
   const [showVaccinationSchedule, setShowVaccinationSchedule] = useState(false);
   const [showOutbreakAlerts, setShowOutbreakAlerts] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false); 
+  const [onlyShowNotifications, setOnlyShowNotifications] = useState(false);
 
   // Data
   const [user, setUser] = useState(null);
@@ -67,7 +68,6 @@ function Home() {
   const [searchingHospitals, setSearchingHospitals] = useState(false);
   const [mapUrl, setMapUrl] = useState("");
   
-
   const [schedule, setSchedule] = useState([]);
   const [outbreakData, setOutbreakData] = useState([]);
   const [loadingOutbreaks, setLoadingOutbreaks] = useState(false);
@@ -255,7 +255,7 @@ function Home() {
     return () => clearInterval(timer);
   }, [user]);
 
-  // --- FIX: LOAD SCHEDULE IMMEDIATELY (So Pending Count is correct on refresh) ---
+  // --- FIX: LOAD SCHEDULE IMMEDIATELY ---
   const loadVaccinationSchedule = () => {
     if (!user?.email) return;
     axios.get(`http://localhost:3001/vaccination/schedule/${encodeURIComponent(user.email)}`)
@@ -263,7 +263,6 @@ function Home() {
       .catch((err) => console.log(err));
   };
 
-  // Run this whenever user data is available (not just when modal opens)
   useEffect(() => {
     if (user?.email) {
       loadVaccinationSchedule();
@@ -286,14 +285,15 @@ function Home() {
   };
 
   // ------------------------------------------------------------
-  // 7. HOSPITAL FINDER (Fixed Map URL)
+  // 7. HOSPITAL FINDER (PROFILE CITY BASED + TOP RATED)
   // ------------------------------------------------------------
   // ------------------------------------------------------------
-  // 7. HOSPITAL FINDER (UPDATED: High Rated Logic)
+  // 7. HOSPITAL FINDER (INSTANT MAP + CITY LIST)
   // ------------------------------------------------------------
   const findNearbyHospitals = () => {
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported");
+    if (!user?.city) {
+      alert("Please update your profile with your City first.");
+      setEditMode(true);
       return;
     }
 
@@ -301,96 +301,41 @@ function Home() {
     setHospitals([]); 
     setShowHospitalFinder(true); 
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        setUserLocation({ lat: latitude, lon: longitude });
+    // 1. INSTANTLY SHOW MAP (Uses Google Maps Embed with City Name)
+    // This works 100% of the time, even if the API fails.
+    setMapUrl(`https://maps.google.com/maps?q=hospitals+in+${user.city}&t=&z=13&ie=UTF8&iwloc=&output=embed`);
 
-        // Show map with YOUR location
-        const initialUrl = `http://googleusercontent.com/maps.google.com/maps?q=${latitude},${longitude}&z=14&output=embed`;
-        setMapUrl(initialUrl);
-
-        try {
-          // Fetch hospitals within 5km
-          const query = `
-            [out:json][timeout:10];
-            (
-              node["amenity"="hospital"](around:5000, ${latitude}, ${longitude});
-              way["amenity"="hospital"](around:5000, ${latitude}, ${longitude});
-            );
-            out body;
-          `;
-          
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-          const response = await axios.get(
-            `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`,
-            { signal: controller.signal }
-          );
-          
-          clearTimeout(timeoutId);
-          const data = response.data.elements;
-
-          if (data && data.length > 0) {
-            const list = data.map(item => {
-              const hospitalLat = item.lat || (item.center && item.center.lat);
-              const hospitalLon = item.lon || (item.center && item.center.lon);
-              
-              // Generate a randomized "High Rating" between 4.0 and 5.0 for the demo
-              const mockRating = (Math.random() * (5.0 - 4.0) + 4.0).toFixed(1);
-
-              return {
-                name: item.tags?.name || "Local Medical Center",
-                address: item.tags?.["addr:street"] || item.tags?.["addr:city"] || "Indore",
-                lat: hospitalLat,
-                lon: hospitalLon,
-                dist: getDistanceFromLatLonInKm(latitude, longitude, hospitalLat, hospitalLon),
-                rating: mockRating // Add rating to object
-              };
-            }).filter(h => h.lat && h.lon && h.name !== "Local Medical Center"); // Basic filter
-            
-            // SORT BY RATING (Highest First) instead of Distance
-            list.sort((a, b) => b.rating - a.rating);
-            
-            // Take top 5 High Rated
-            setHospitals(list.slice(0, 5));
-          } else {
-            setHospitals([]);
-          }
-        } catch (error) {
-          console.warn("Hospital API error - Map still available");
-          setHospitals([]);
-        } finally {
-          setSearchingHospitals(false);
-        }
-      },
-      (error) => {
-        alert("Please enable Location Services.");
+    // 2. FETCH LIST FROM BACKEND (Background process)
+    axios.get(`http://localhost:3001/hospitals?city=${user.city}`)
+      .then((res) => {
+        setHospitals(res.data.hospitals || []);
         setSearchingHospitals(false);
-        setShowHospitalFinder(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
+      })
+      .catch((err) => {
+        console.warn("List fetch error, but map is visible.");
+        setSearchingHospitals(false);
+      });
+  };
+
+  // OPEN GOOGLE MAPS ON CLICK
+  const openInMaps = (hospital) => {
+    // Opens standard Google Maps in a new tab
+    const url = `https://www.google.com/maps/search/?api=1&query=${hospital.lat},${hospital.lon}`;
+    window.open(url, '_blank');
   };
 
   // 2. Click a Hospital -> Show Directions on Map
-const viewOnMap = (hospital) => {
-  if (userLocation) {
-      // Directions Mode with both markers: Your location + Hospital
-      const embedUrl = `https://maps.google.com/maps?saddr=${userLocation.lat},${userLocation.lon}&daddr=${hospital.lat},${hospital.lon}&output=embed`;
-      setMapUrl(embedUrl);
-  } else {
-      // Fallback: Just pin the hospital
-      const pinUrl = `https://maps.google.com/maps?q=${hospital.lat},${hospital.lon}&z=15&output=embed`;
-      setMapUrl(pinUrl);
-  }
-};
+  const viewOnMap = (hospital) => {
+    if (userLocation) {
+        const embedUrl = `http://googleusercontent.com/maps.google.com/maps?q=${hospital.lat},${hospital.lon}&z=15&output=embed`;
+        setMapUrl(embedUrl);
+    }
+  };
 
-  // 3. Reset Map to My Location
+  // 3. Reset Map to City Location
   const recenterMap = () => {
     if (userLocation) {
-        const resetUrl = `https://maps.google.com/maps?q=${userLocation.lat},${userLocation.lon}&z=14&output=embed`;
+        const resetUrl = `http://googleusercontent.com/maps.google.com/maps?q=${userLocation.lat},${userLocation.lon}&z=13&output=embed`;
         setMapUrl(resetUrl);
     }
   };
@@ -477,7 +422,6 @@ const viewOnMap = (hospital) => {
         <section className="quick-stats">
           <div className="stat-card stat-card-1"><FaSyringe className="stat-icon" /><div><h3>{user.vaccinations?.length || 0}</h3><p>Vaccinations</p></div></div>
           <div className="stat-card stat-card-2"><FaBell className="stat-icon" /><div><h3>{notifications.length}</h3><p>Notifications</p></div></div>
-          {/* FIX: Ensure schedule exists before filtering to avoid crashes */}
           <div className="stat-card stat-card-3"><FaCalendarAlt className="stat-icon" /><div><h3>{schedule ? schedule.filter((s) => s.status === "due" || s.status === "upcoming").length : 0}</h3><p>Pending</p></div></div>
         </section>
 
@@ -557,238 +501,174 @@ const viewOnMap = (hospital) => {
         <div className="modal-overlay" onClick={() => setShowVaccinationSchedule(false)}>
           <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>📅 Your Vaccination Schedule</h2>
+              <h2>{onlyShowNotifications ? "🔔 Notifications" : "📅 Your Vaccination Schedule"}</h2>
               <FaTimes className="modal-close" onClick={() => setShowVaccinationSchedule(false)} />
             </div>
             
-            {/* ADD VACCINE FORM */}
-            <div className="vaccine-form-container" style={{backgroundColor: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0'}}>
-                <h4 style={{margin: '0 0 15px 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px'}}><FaPlusCircle color="#2563eb"/> Add New Schedule / Record</h4>
-                <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
-                    <input 
-                        type="text" placeholder="Vaccine Name (e.g. Polio)" 
-                        className="form-input" style={{flex: 1}}
-                        value={newVaccine.vaccineName}
-                        onChange={(e) => setNewVaccine({...newVaccine, vaccineName: e.target.value})}
-                    />
-                    <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
-                        <label style={{fontSize: '0.9rem', color: '#64748b'}}>Dose:</label>
-                        <select className="form-input" value={newVaccine.doseNumber} onChange={(e) => setNewVaccine({...newVaccine, doseNumber: e.target.value})}>
-                            {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
-                        </select>
-                        <span style={{color: '#64748b'}}>/</span>
-                        <select className="form-input" value={newVaccine.totalDoses} onChange={(e) => setNewVaccine({...newVaccine, totalDoses: e.target.value})}>
-                            {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
-                        </select>
-                    </div>
-                    
-                    {/* DATE INPUT WITH VALIDATION */}
-                    <input 
-                        type="date" 
-                        className="form-input"
-                        min={getTodayDate()} 
-                        value={newVaccine.nextDoseDate}
-                        onChange={(e) => setNewVaccine({...newVaccine, nextDoseDate: e.target.value})}
-                    />
-                    
-                    <button className="btn-save" style={{padding: '10px 20px'}} onClick={handleAddVaccine}>Add</button>
-                </div>
-            </div>
+            {/* NOTIFICATIONS INSIDE SCHEDULE */}
+            {notifications.length > 0 && (
+              <div className="notifications-section">
+                <h3>{onlyShowNotifications ? "Current Alerts" : "🔔 Today's Notifications"}</h3>
+                {notifications.map((n, idx) => (
+                  <div key={idx} className="notification-item-modal">
+                    <FaBell className="notif-icon" />
+                    <span>{n.message}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
-            {/* USER SCHEDULE LIST */}
-            {user.vaccinations && user.vaccinations.length > 0 && (
+            {!onlyShowNotifications && (
               <>
-                <h3 style={{ marginTop: "10px", marginBottom: "15px", color: "#2d3748" }}>Your Scheduled Vaccinations</h3>
+                {/* ADD VACCINE FORM */}
+                <div className="vaccine-form-container" style={{backgroundColor: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0'}}>
+                    <h4 style={{margin: '0 0 15px 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px'}}><FaPlusCircle color="#2563eb"/> Add New Schedule / Record</h4>
+                    <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
+                        <input 
+                            type="text" placeholder="Vaccine Name (e.g. Polio)" 
+                            className="form-input" style={{flex: 1}}
+                            value={newVaccine.vaccineName}
+                            onChange={(e) => setNewVaccine({...newVaccine, vaccineName: e.target.value})}
+                        />
+                        <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
+                            <label style={{fontSize: '0.9rem', color: '#64748b'}}>Dose:</label>
+                            <select className="form-input" value={newVaccine.doseNumber} onChange={(e) => setNewVaccine({...newVaccine, doseNumber: e.target.value})}>
+                                {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+                            </select>
+                            <span style={{color: '#64748b'}}>/</span>
+                            <select className="form-input" value={newVaccine.totalDoses} onChange={(e) => setNewVaccine({...newVaccine, totalDoses: e.target.value})}>
+                                {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+                            </select>
+                        </div>
+                        
+                        <input 
+                            type="date" 
+                            className="form-input"
+                            min={getTodayDate()} 
+                            value={newVaccine.nextDoseDate}
+                            onChange={(e) => setNewVaccine({...newVaccine, nextDoseDate: e.target.value})}
+                        />
+                        
+                        <button className="btn-save" style={{padding: '10px 20px'}} onClick={handleAddVaccine}>Add</button>
+                    </div>
+                </div>
+
+                {/* USER SCHEDULE LIST */}
+                {user.vaccinations && user.vaccinations.length > 0 && (
+                  <>
+                    <h3 style={{ marginTop: "10px", marginBottom: "15px", color: "#2d3748" }}>Your Scheduled Vaccinations</h3>
+                    <div className="schedule-grid">
+                      {user.vaccinations.map((vac, idx) => (
+                        <div key={idx} className={`schedule-card ${vac.completed ? "status-completed" : "status-scheduled"}`}>
+                          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
+                            <h4>{vac.vaccineName}</h4>
+                            <div style={{display:'flex', gap:'8px'}}>
+                                {!vac.completed && (
+                                    <button onClick={() => addToCalendar(vac.vaccineName, vac.nextDoseDate)} style={{background: 'none', border: 'none', cursor: 'pointer', color: '#2563eb'}} title="Add to Google Calendar"><FaGoogle size={16} /></button>
+                                )}
+                                <button onClick={() => handleDeleteVaccine(vac._id)} style={{background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444'}} title="Delete Schedule"><FaTrash size={16} /></button>
+                            </div>
+                          </div>
+                          <div className="schedule-details">
+                            <p><strong>Dose:</strong> {vac.doseNumber} of {vac.totalDoses}</p>
+                            <p><strong>Next Date:</strong> {new Date(vac.nextDoseDate).toLocaleDateString()}</p>
+                            <p><strong>Status:</strong> <span className={`status-badge ${vac.completed ? "completed" : "scheduled"}`}>{vac.completed ? "Completed" : "Scheduled"}</span></p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* RECOMMENDED LIST */}
+                <h3 style={{ marginTop: "30px", marginBottom: "15px", color: "#2d3748" }}>Recommended Vaccination Schedule</h3>
                 <div className="schedule-grid">
-                  {user.vaccinations.map((vac, idx) => (
-                    <div key={idx} className={`schedule-card ${vac.completed ? "status-completed" : "status-scheduled"}`}>
-                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
-                        <h4>{vac.vaccineName}</h4>
-                        <div style={{display:'flex', gap:'8px'}}>
-                            {!vac.completed && (
-                                <button onClick={() => addToCalendar(vac.vaccineName, vac.nextDoseDate)} style={{background: 'none', border: 'none', cursor: 'pointer', color: '#2563eb'}} title="Add to Google Calendar"><FaGoogle size={16} /></button>
+                  {schedule.length === 0 ? (
+                    <p className="no-data">No vaccination schedule available. Please update your age/DOB in profile.</p>
+                  ) : (
+                    schedule.map((item, idx) => (
+                      <div key={idx} className={`schedule-card status-${item.status}`}>
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
+                            <h4>{item.vaccineName}</h4>
+                            {item.nextDueDate && (
+                                <button onClick={() => addToCalendar(item.vaccineName, item.nextDueDate)} style={{background: 'none', border: 'none', cursor: 'pointer', color: '#2563eb'}} title="Add to Google Calendar"><FaGoogle size={18} /></button>
                             )}
-                            <button onClick={() => handleDeleteVaccine(vac._id)} style={{background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444'}} title="Delete Schedule"><FaTrash size={16} /></button>
+                        </div>
+                        <div className="schedule-details">
+                          <p><strong>Status:</strong> <span className={`status-badge ${item.status}`}>{item.status}</span></p>
+                          <p><strong>Doses:</strong> {item.dosesTaken} / {item.dosesRecommended}</p>
+                          {item.nextDueDate && (<p><strong>Next Due:</strong> {new Date(item.nextDueDate).toLocaleDateString()}</p>)}
                         </div>
                       </div>
-                      <div className="schedule-details">
-                        <p><strong>Dose:</strong> {vac.doseNumber} of {vac.totalDoses}</p>
-                        <p><strong>Next Date:</strong> {new Date(vac.nextDoseDate).toLocaleDateString()}</p>
-                        <p><strong>Status:</strong> <span className={`status-badge ${vac.completed ? "completed" : "scheduled"}`}>{vac.completed ? "Completed" : "Scheduled"}</span></p>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </>
             )}
-
-            {/* RECOMMENDED LIST */}
-            <h3 style={{ marginTop: "30px", marginBottom: "15px", color: "#2d3748" }}>Recommended Vaccination Schedule</h3>
-            <div className="schedule-grid">
-              {schedule.length === 0 ? (
-                <p className="no-data">No vaccination schedule available. Please update your age/DOB in profile.</p>
-              ) : (
-                schedule.map((item, idx) => (
-                  <div key={idx} className={`schedule-card status-${item.status}`}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
-                        <h4>{item.vaccineName}</h4>
-                        {item.nextDueDate && (
-                            <button onClick={() => addToCalendar(item.vaccineName, item.nextDueDate)} style={{background: 'none', border: 'none', cursor: 'pointer', color: '#2563eb'}} title="Add to Google Calendar"><FaGoogle size={18} /></button>
-                        )}
-                    </div>
-                    <div className="schedule-details">
-                      <p><strong>Status:</strong> <span className={`status-badge ${item.status}`}>{item.status}</span></p>
-                      <p><strong>Doses:</strong> {item.dosesTaken} / {item.dosesRecommended}</p>
-                      {item.nextDueDate && (<p><strong>Next Due:</strong> {new Date(item.nextDueDate).toLocaleDateString()}</p>)}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
           </div>
         </div>
       )}
 
       {/* HOSPITAL FINDER MODAL */}
-      {/* HOSPITAL FINDER MODAL */}
-      {showHospitalFinder && (
-        <div className="modal-overlay" onClick={() => setShowHospitalFinder(false)}>
-          <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()} style={{ height: '85vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
-            
-            {/* Header with Recenter Button */}
-            <div className="modal-header" style={{ padding: '15px 20px', background: '#fff', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
-                <FaHospital style={{color: '#ef4444', fontSize: '1.2rem'}}/>
-                <h2 style={{fontSize: '1.2rem', margin: 0}}>Nearest Medical Centers</h2>
-              </div>
-              <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
-                 {/* BUTTON TO SHOW YOUR LOCATION AGAIN */}
-                 <button onClick={recenterMap} title="Back to My Location" style={{background: '#eff6ff', border: '1px solid #bfdbfe', padding: '8px', borderRadius: '50%', cursor: 'pointer', color: '#2563eb'}}>
-                    <FaMapMarkerAlt />
-                 </button>
-                 <FaTimes className="modal-close" style={{position:'static'}} onClick={() => setShowHospitalFinder(false)} />
-              </div>
-            </div>
-
-            {/* Map Section */}
-            <div style={{ flex: '6', position: 'relative', background: '#e5e7eb' }}>
-               <iframe title="Google Maps" width="100%" height="100%" frameBorder="0" src={mapUrl} allowFullScreen style={{ border: 0 }}></iframe>
-            </div>
-
-            {/* Interactive List Section */}
-            <div style={{ flex: '4', background: '#fff', overflowY: 'auto', padding: '15px' }}>
-              <h4 style={{ margin: '0 0 10px 0', color: '#374151', fontSize: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-  <span>Nearby Hospitals</span>
-  {searchingHospitals && (
-    <span style={{fontSize: '0.8rem', color: '#2563eb', display: 'flex', alignItems: 'center', gap: '5px'}}>
-      <div className="loading-spinner" style={{width: '12px', height: '12px', borderWidth: '2px'}}></div>
-      Loading...
-    </span>
-  )}
-</h4>
-
-{/* HOSPITAL FINDER MODAL */}
+      {/* HOSPITAL FINDER MODAL (CITY BASED) */}
       {showHospitalFinder && (
         <div className="modal-overlay" onClick={() => setShowHospitalFinder(false)}>
           <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()} style={{ height: '85vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
             
             {/* Header */}
             <div className="modal-header" style={{ padding: '15px 20px', background: '#fff', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+              <div style={{display:'flex', gap:'10px', alignItems:'center'}}>
                 <FaHospital style={{color: '#ef4444', fontSize: '1.2rem'}}/>
-                <h2 style={{fontSize: '1.2rem', margin: 0}}>Nearest Medical Centers</h2>
+                <h2 style={{fontSize: '1.2rem', margin: 0}}>Hospitals in {user.city}</h2>
               </div>
-              <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
-                 <button onClick={recenterMap} title="Back to My Location" style={{background: '#eff6ff', border: '1px solid #bfdbfe', padding: '8px', borderRadius: '50%', cursor: 'pointer', color: '#2563eb'}}>
-                    <FaMapMarkerAlt />
-                 </button>
-                 <FaTimes className="modal-close" style={{position:'static'}} onClick={() => setShowHospitalFinder(false)} />
-              </div>
+              <FaTimes className="modal-close" style={{position:'static', cursor:'pointer'}} onClick={() => setShowHospitalFinder(false)} />
             </div>
-
-            {/* Map Section (Top 60%) */}
-            <div style={{ flex: '6', position: 'relative', background: '#e5e7eb' }}>
-               <iframe title="Google Maps" width="100%" height="100%" frameBorder="0" src={mapUrl} allowFullScreen style={{ border: 0 }}></iframe>
+            
+            {/* MAP SECTION (Always Visible) */}
+            <div style={{ flex: '5', background: '#e5e7eb', position: 'relative' }}>
+                <iframe 
+                    title="Map" 
+                    width="100%" 
+                    height="100%" 
+                    frameBorder="0" 
+                    src={mapUrl} 
+                    allowFullScreen 
+                    style={{ border: 0, position: 'absolute', top: 0, left: 0 }}
+                ></iframe>
             </div>
-
-            {/* Interactive List Section (Bottom 40%) - PASTE YOUR NEW CODE HERE */}
-            <div style={{ flex: '4', background: '#fff', overflowY: 'auto', padding: '15px' }}>
-              <h4 style={{ margin: '0 0 10px 0', color: '#374151', fontSize: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>Top 5 Rated Nearby</span>
-                {searchingHospitals && (
-                  <span style={{fontSize: '0.8rem', color: '#2563eb', display: 'flex', alignItems: 'center', gap: '5px'}}>
-                    <div className="loading-spinner" style={{width: '12px', height: '12px', borderWidth: '2px'}}></div>
-                    Loading...
-                  </span>
-                )}
+            
+            {/* LIST SECTION */}
+            <div style={{ flex: '5', background: '#fff', overflowY: 'auto', padding: '15px' }}>
+              <h4 style={{ margin: '0 0 10px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Top Rated Nearby</span>
+                {searchingHospitals && <span style={{fontSize: '0.8rem', color: '#2563eb'}}>Loading list...</span>}
               </h4>
-
-              {searchingHospitals ? (
-                <div style={{textAlign: 'center', padding: '40px 20px', color: '#6b7280'}}>
-                  <div className="loading-spinner" style={{margin: '0 auto 15px'}}></div>
-                  <p style={{fontSize: '0.9rem'}}>Finding top rated hospitals...</p>
-                </div>
-              ) : hospitals.length === 0 ? (
-                <div style={{textAlign: 'center', padding: '40px 20px'}}>
-                  <FaHospital size={40} color="#d1d5db" style={{marginBottom: '15px'}}/>
-                  <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>Hospital list unavailable</p>
+              
+              {hospitals.length === 0 && !searchingHospitals ? (
+                <div style={{textAlign: 'center', padding: '20px', color: '#6b7280'}}>
+                    <p>Use the map above to browse hospitals.</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {hospitals.map((h, idx) => (
-                    <div 
-                      key={idx} 
-                      style={{ 
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                        padding: '12px', borderRadius: '8px', border: '1px solid #f3f4f6', 
-                        background: '#fff',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      <div style={{flex: 1, cursor: 'pointer'}} onClick={() => viewOnMap(h)}>
-                        <div style={{display:'flex', justifyContent:'space-between', alignItems:'start'}}>
-                           <strong style={{ display: 'block', color: '#1f2937', fontSize: '0.95rem' }}>{h.name}</strong>
-                           
-                           {/* RATING BADGE */}
-                           <span style={{
-                               background: '#fffbeb', color: '#b45309', 
-                               fontSize: '0.8rem', fontWeight: 'bold', 
-                               padding: '2px 6px', borderRadius: '4px',
-                               display: 'flex', alignItems: 'center', gap: '3px',
-                               border: '1px solid #fcd34d'
-                           }}>
-                              <FaStar size={10} /> {h.rating}
-                           </span>
-                        </div>
-
-                        <span style={{ fontSize: '0.8rem', color: '#6b7280', display:'block', marginTop:'2px' }}>{h.address}</span>
+                    <div key={idx} onClick={() => openInMaps(h)} style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', borderRadius: '8px', border: '1px solid #f3f4f6', background: idx === 0 ? '#f0f9ff' : '#fff', cursor: 'pointer', alignItems: 'center' }}>
+                      <div style={{flex: 1}}>
+                        <strong style={{ display: 'block', color: '#1f2937', fontSize: '1rem' }}>{h.name}</strong>
                         
-                        <div style={{marginTop: '6px', fontSize: '0.75rem', color: '#2563eb', display: 'flex', alignItems: 'center', gap: '4px'}}>
-                            <FaMapMarkerAlt/> View on Map
+                        {/* RATING STARS */}
+                        <div style={{display:'flex', alignItems:'center', gap:'5px', marginTop:'4px'}}>
+                            <span style={{background:'#fef3c7', color:'#d97706', padding:'2px 6px', borderRadius:'4px', fontSize:'0.8rem', fontWeight:'bold', display:'flex', alignItems:'center', gap:'3px'}}>
+                                {h.rating} <FaStar size={10}/>
+                            </span>
+                            <span style={{fontSize:'0.8rem', color:'#6b7280'}}>Highly Rated</span>
                         </div>
-                      </div>
 
-                      <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end', marginLeft: '10px' }}>
-                        <span style={{ fontWeight: 'bold', color: '#059669', fontSize: '0.85rem' }}>
-                            {h.dist.toFixed(1)} km
-                        </span>
-                        <button 
-                          onClick={() => window.open(`http://googleusercontent.com/maps.google.com/maps?saddr=${userLocation.lat},${userLocation.lon}&daddr=${h.lat},${h.lon}&travelmode=driving`, '_blank')}
-                          style={{
-                            padding: '6px 12px',
-                            background: '#2563eb',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontSize: '0.75rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}
-                        >
-                          <FaDirections /> Go
+                        <span style={{ display:'block', fontSize: '0.8rem', color: '#6b7280', marginTop:'5px' }}>{h.address}</span>
+                      </div>
+                      
+                      <div style={{ textAlign: 'right' }}>
+                        <button style={{background:'#2563eb', color:'white', border:'none', padding:'8px 12px', borderRadius:'6px', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px'}}>
+                            <FaDirections/> Go
                         </button>
                       </div>
                     </div>
@@ -796,11 +676,6 @@ const viewOnMap = (hospital) => {
                 </div>
               )}
             </div>
-            {/* END OF REPLACED SECTION */}
-
-          </div>
-        </div>
-      )}         </div>
           </div>
         </div>
       )}
