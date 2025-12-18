@@ -268,7 +268,7 @@ function Home() {
     if (user?.email) {
       loadVaccinationSchedule();
     }
-  }, [user?.email]);
+  }, []);
 
   // ------------------------------------------------------------
   // 6. OUTBREAKS
