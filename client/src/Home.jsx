@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-// Home.js - FIXED: Profile City Search + Top Rated List
+// Home.js - FIXED: Pending Count (Immediate Load) + Hospital Map URL
 
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom"; 
@@ -15,7 +15,7 @@ import {
   FaLightbulb,
   FaCalendarAlt,
   FaSearch,
-  FaStar, // Ensure this is imported
+  FaStar,
   FaTimes,
   FaRobot,
   FaMagic,
@@ -48,7 +48,7 @@ function Home() {
   // STATE MANAGEMENT
   const [showProfile, setShowProfile] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [userLocation, setUserLocation] = useState(null); // Will store City Coordinates
+  const [userLocation, setUserLocation] = useState(null);
   
   // Modals
   const [showHealthTips, setShowHealthTips] = useState(false);
@@ -56,7 +56,6 @@ function Home() {
   const [showVaccinationSchedule, setShowVaccinationSchedule] = useState(false);
   const [showOutbreakAlerts, setShowOutbreakAlerts] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false); 
-  const [onlyShowNotifications, setOnlyShowNotifications] = useState(false);
 
   // Data
   const [user, setUser] = useState(null);
@@ -68,6 +67,7 @@ function Home() {
   const [searchingHospitals, setSearchingHospitals] = useState(false);
   const [mapUrl, setMapUrl] = useState("");
   
+
   const [schedule, setSchedule] = useState([]);
   const [outbreakData, setOutbreakData] = useState([]);
   const [loadingOutbreaks, setLoadingOutbreaks] = useState(false);
@@ -255,7 +255,7 @@ function Home() {
     return () => clearInterval(timer);
   }, [user]);
 
-  // --- FIX: LOAD SCHEDULE IMMEDIATELY ---
+  // --- FIX: LOAD SCHEDULE IMMEDIATELY (So Pending Count is correct on refresh) ---
   const loadVaccinationSchedule = () => {
     if (!user?.email) return;
     axios.get(`http://localhost:3001/vaccination/schedule/${encodeURIComponent(user.email)}`)
@@ -263,6 +263,7 @@ function Home() {
       .catch((err) => console.log(err));
   };
 
+  // Run this whenever user data is available (not just when modal opens)
   useEffect(() => {
     if (user?.email) {
       loadVaccinationSchedule();
@@ -285,7 +286,13 @@ function Home() {
   };
 
   // ------------------------------------------------------------
-  // 7. HOSPITAL FINDER (PROFILE CITY BASED + TOP RATED)
+  // 7. HOSPITAL FINDER (Fixed Map URL)
+  // ------------------------------------------------------------
+  // ------------------------------------------------------------
+  // 7. HOSPITAL FINDER (UPDATED: High Rated Logic)
+  // ------------------------------------------------------------
+  // ------------------------------------------------------------
+  // 7. HOSPITAL FINDER (UPDATED: High Rated Logic)
   // ------------------------------------------------------------
   // ------------------------------------------------------------
   // 7. HOSPITAL FINDER (INSTANT MAP + CITY LIST)
@@ -325,17 +332,22 @@ function Home() {
   };
 
   // 2. Click a Hospital -> Show Directions on Map
-  const viewOnMap = (hospital) => {
-    if (userLocation) {
-        const embedUrl = `http://googleusercontent.com/maps.google.com/maps?q=${hospital.lat},${hospital.lon}&z=15&output=embed`;
-        setMapUrl(embedUrl);
-    }
-  };
+const viewOnMap = (hospital) => {
+  if (userLocation) {
+      // Directions Mode with both markers: Your location + Hospital
+      const embedUrl = `https://maps.google.com/maps?saddr=${userLocation.lat},${userLocation.lon}&daddr=${hospital.lat},${hospital.lon}&output=embed`;
+      setMapUrl(embedUrl);
+  } else {
+      // Fallback: Just pin the hospital
+      const pinUrl = `https://maps.google.com/maps?q=${hospital.lat},${hospital.lon}&z=15&output=embed`;
+      setMapUrl(pinUrl);
+  }
+};
 
-  // 3. Reset Map to City Location
+  // 3. Reset Map to My Location
   const recenterMap = () => {
     if (userLocation) {
-        const resetUrl = `http://googleusercontent.com/maps.google.com/maps?q=${userLocation.lat},${userLocation.lon}&z=13&output=embed`;
+        const resetUrl = `https://maps.google.com/maps?q=${userLocation.lat},${userLocation.lon}&z=14&output=embed`;
         setMapUrl(resetUrl);
     }
   };
@@ -422,6 +434,7 @@ function Home() {
         <section className="quick-stats">
           <div className="stat-card stat-card-1"><FaSyringe className="stat-icon" /><div><h3>{user.vaccinations?.length || 0}</h3><p>Vaccinations</p></div></div>
           <div className="stat-card stat-card-2"><FaBell className="stat-icon" /><div><h3>{notifications.length}</h3><p>Notifications</p></div></div>
+          {/* FIX: Ensure schedule exists before filtering to avoid crashes */}
           <div className="stat-card stat-card-3"><FaCalendarAlt className="stat-icon" /><div><h3>{schedule ? schedule.filter((s) => s.status === "due" || s.status === "upcoming").length : 0}</h3><p>Pending</p></div></div>
         </section>
 
@@ -501,114 +514,99 @@ function Home() {
         <div className="modal-overlay" onClick={() => setShowVaccinationSchedule(false)}>
           <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>{onlyShowNotifications ? "🔔 Notifications" : "📅 Your Vaccination Schedule"}</h2>
+              <h2>📅 Your Vaccination Schedule</h2>
               <FaTimes className="modal-close" onClick={() => setShowVaccinationSchedule(false)} />
             </div>
             
-            {/* NOTIFICATIONS INSIDE SCHEDULE */}
-            {notifications.length > 0 && (
-              <div className="notifications-section">
-                <h3>{onlyShowNotifications ? "Current Alerts" : "🔔 Today's Notifications"}</h3>
-                {notifications.map((n, idx) => (
-                  <div key={idx} className="notification-item-modal">
-                    <FaBell className="notif-icon" />
-                    <span>{n.message}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {!onlyShowNotifications && (
-              <>
-                {/* ADD VACCINE FORM */}
-                <div className="vaccine-form-container" style={{backgroundColor: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0'}}>
-                    <h4 style={{margin: '0 0 15px 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px'}}><FaPlusCircle color="#2563eb"/> Add New Schedule / Record</h4>
-                    <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
-                        <input 
-                            type="text" placeholder="Vaccine Name (e.g. Polio)" 
-                            className="form-input" style={{flex: 1}}
-                            value={newVaccine.vaccineName}
-                            onChange={(e) => setNewVaccine({...newVaccine, vaccineName: e.target.value})}
-                        />
-                        <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
-                            <label style={{fontSize: '0.9rem', color: '#64748b'}}>Dose:</label>
-                            <select className="form-input" value={newVaccine.doseNumber} onChange={(e) => setNewVaccine({...newVaccine, doseNumber: e.target.value})}>
-                                {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
-                            </select>
-                            <span style={{color: '#64748b'}}>/</span>
-                            <select className="form-input" value={newVaccine.totalDoses} onChange={(e) => setNewVaccine({...newVaccine, totalDoses: e.target.value})}>
-                                {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
-                            </select>
-                        </div>
-                        
-                        <input 
-                            type="date" 
-                            className="form-input"
-                            min={getTodayDate()} 
-                            value={newVaccine.nextDoseDate}
-                            onChange={(e) => setNewVaccine({...newVaccine, nextDoseDate: e.target.value})}
-                        />
-                        
-                        <button className="btn-save" style={{padding: '10px 20px'}} onClick={handleAddVaccine}>Add</button>
+            {/* ADD VACCINE FORM */}
+            <div className="vaccine-form-container" style={{backgroundColor: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0'}}>
+                <h4 style={{margin: '0 0 15px 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px'}}><FaPlusCircle color="#2563eb"/> Add New Schedule / Record</h4>
+                <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
+                    <input 
+                        type="text" placeholder="Vaccine Name (e.g. Polio)" 
+                        className="form-input" style={{flex: 1}}
+                        value={newVaccine.vaccineName}
+                        onChange={(e) => setNewVaccine({...newVaccine, vaccineName: e.target.value})}
+                    />
+                    <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
+                        <label style={{fontSize: '0.9rem', color: '#64748b'}}>Dose:</label>
+                        <select className="form-input" value={newVaccine.doseNumber} onChange={(e) => setNewVaccine({...newVaccine, doseNumber: e.target.value})}>
+                            {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+                        </select>
+                        <span style={{color: '#64748b'}}>/</span>
+                        <select className="form-input" value={newVaccine.totalDoses} onChange={(e) => setNewVaccine({...newVaccine, totalDoses: e.target.value})}>
+                            {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+                        </select>
                     </div>
+                    
+                    {/* DATE INPUT WITH VALIDATION */}
+                    <input 
+                        type="date" 
+                        className="form-input"
+                        min={getTodayDate()} 
+                        value={newVaccine.nextDoseDate}
+                        onChange={(e) => setNewVaccine({...newVaccine, nextDoseDate: e.target.value})}
+                    />
+                    
+                    <button className="btn-save" style={{padding: '10px 20px'}} onClick={handleAddVaccine}>Add</button>
                 </div>
+            </div>
 
-                {/* USER SCHEDULE LIST */}
-                {user.vaccinations && user.vaccinations.length > 0 && (
-                  <>
-                    <h3 style={{ marginTop: "10px", marginBottom: "15px", color: "#2d3748" }}>Your Scheduled Vaccinations</h3>
-                    <div className="schedule-grid">
-                      {user.vaccinations.map((vac, idx) => (
-                        <div key={idx} className={`schedule-card ${vac.completed ? "status-completed" : "status-scheduled"}`}>
-                          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
-                            <h4>{vac.vaccineName}</h4>
-                            <div style={{display:'flex', gap:'8px'}}>
-                                {!vac.completed && (
-                                    <button onClick={() => addToCalendar(vac.vaccineName, vac.nextDoseDate)} style={{background: 'none', border: 'none', cursor: 'pointer', color: '#2563eb'}} title="Add to Google Calendar"><FaGoogle size={16} /></button>
-                                )}
-                                <button onClick={() => handleDeleteVaccine(vac._id)} style={{background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444'}} title="Delete Schedule"><FaTrash size={16} /></button>
-                            </div>
-                          </div>
-                          <div className="schedule-details">
-                            <p><strong>Dose:</strong> {vac.doseNumber} of {vac.totalDoses}</p>
-                            <p><strong>Next Date:</strong> {new Date(vac.nextDoseDate).toLocaleDateString()}</p>
-                            <p><strong>Status:</strong> <span className={`status-badge ${vac.completed ? "completed" : "scheduled"}`}>{vac.completed ? "Completed" : "Scheduled"}</span></p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {/* RECOMMENDED LIST */}
-                <h3 style={{ marginTop: "30px", marginBottom: "15px", color: "#2d3748" }}>Recommended Vaccination Schedule</h3>
+            {/* USER SCHEDULE LIST */}
+            {user.vaccinations && user.vaccinations.length > 0 && (
+              <>
+                <h3 style={{ marginTop: "10px", marginBottom: "15px", color: "#2d3748" }}>Your Scheduled Vaccinations</h3>
                 <div className="schedule-grid">
-                  {schedule.length === 0 ? (
-                    <p className="no-data">No vaccination schedule available. Please update your age/DOB in profile.</p>
-                  ) : (
-                    schedule.map((item, idx) => (
-                      <div key={idx} className={`schedule-card status-${item.status}`}>
-                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
-                            <h4>{item.vaccineName}</h4>
-                            {item.nextDueDate && (
-                                <button onClick={() => addToCalendar(item.vaccineName, item.nextDueDate)} style={{background: 'none', border: 'none', cursor: 'pointer', color: '#2563eb'}} title="Add to Google Calendar"><FaGoogle size={18} /></button>
+                  {user.vaccinations.map((vac, idx) => (
+                    <div key={idx} className={`schedule-card ${vac.completed ? "status-completed" : "status-scheduled"}`}>
+                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
+                        <h4>{vac.vaccineName}</h4>
+                        <div style={{display:'flex', gap:'8px'}}>
+                            {!vac.completed && (
+                                <button onClick={() => addToCalendar(vac.vaccineName, vac.nextDoseDate)} style={{background: 'none', border: 'none', cursor: 'pointer', color: '#2563eb'}} title="Add to Google Calendar"><FaGoogle size={16} /></button>
                             )}
-                        </div>
-                        <div className="schedule-details">
-                          <p><strong>Status:</strong> <span className={`status-badge ${item.status}`}>{item.status}</span></p>
-                          <p><strong>Doses:</strong> {item.dosesTaken} / {item.dosesRecommended}</p>
-                          {item.nextDueDate && (<p><strong>Next Due:</strong> {new Date(item.nextDueDate).toLocaleDateString()}</p>)}
+                            <button onClick={() => handleDeleteVaccine(vac._id)} style={{background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444'}} title="Delete Schedule"><FaTrash size={16} /></button>
                         </div>
                       </div>
-                    ))
-                  )}
+                      <div className="schedule-details">
+                        <p><strong>Dose:</strong> {vac.doseNumber} of {vac.totalDoses}</p>
+                        <p><strong>Next Date:</strong> {new Date(vac.nextDoseDate).toLocaleDateString()}</p>
+                        <p><strong>Status:</strong> <span className={`status-badge ${vac.completed ? "completed" : "scheduled"}`}>{vac.completed ? "Completed" : "Scheduled"}</span></p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </>
             )}
+
+            {/* RECOMMENDED LIST */}
+            <h3 style={{ marginTop: "30px", marginBottom: "15px", color: "#2d3748" }}>Recommended Vaccination Schedule</h3>
+            <div className="schedule-grid">
+              {schedule.length === 0 ? (
+                <p className="no-data">No vaccination schedule available. Please update your age/DOB in profile.</p>
+              ) : (
+                schedule.map((item, idx) => (
+                  <div key={idx} className={`schedule-card status-${item.status}`}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
+                        <h4>{item.vaccineName}</h4>
+                        {item.nextDueDate && (
+                            <button onClick={() => addToCalendar(item.vaccineName, item.nextDueDate)} style={{background: 'none', border: 'none', cursor: 'pointer', color: '#2563eb'}} title="Add to Google Calendar"><FaGoogle size={18} /></button>
+                        )}
+                    </div>
+                    <div className="schedule-details">
+                      <p><strong>Status:</strong> <span className={`status-badge ${item.status}`}>{item.status}</span></p>
+                      <p><strong>Doses:</strong> {item.dosesTaken} / {item.dosesRecommended}</p>
+                      {item.nextDueDate && (<p><strong>Next Due:</strong> {new Date(item.nextDueDate).toLocaleDateString()}</p>)}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       )}
 
+      {/* HOSPITAL FINDER MODAL */}
       {/* HOSPITAL FINDER MODAL */}
       {/* HOSPITAL FINDER MODAL (CITY BASED) */}
       {showHospitalFinder && (
@@ -710,23 +708,70 @@ function Home() {
 
       {/* HEALTH TIPS MODAL */}
       {showHealthTips && (
-        <div className="modal-overlay" onClick={()=>setShowHealthTips(false)}>
-            <div className="modal-content" style={{maxWidth: '500px', textAlign: 'center'}}>
-                <div className="modal-header" style={{ justifyContent: 'center' }}><FaRobot size={28} color="#2563eb" /><h2 style={{margin: 0, marginLeft: 10}}>Medmitra AI Insight</h2><FaTimes className="modal-close" onClick={()=>setShowHealthTips(false)} style={{position: 'absolute', right: 20}} /></div>
-                <div style={{ padding: '20px 0', minHeight: '200px' }}>
-                    {loadingTip ? <div className="loading-spinner"></div> : aiTip && (
-                        <div className="ai-result-card" style={{ animation: 'fadeIn 0.5s ease' }}>
-                            <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '15px' }}>{aiTip.intro}</p>
-                            <div style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', padding: '25px', borderRadius: '16px', border: '1px solid #bfdbfe' }}>
-                                <div style={{ fontSize: '3rem', marginBottom: '10px' }}>{aiTip.icon}</div>
-                                <h3 style={{ color: '#1e40af', marginBottom: '10px' }}>{aiTip.category}</h3>
-                                <p style={{ color: '#1e3a8a', fontSize: '1.1rem', fontWeight: '500' }}>"{aiTip.tip}"</p>
-                            </div>
-                            <button onClick={generateAiTip} style={{ marginTop: '25px', padding: '12px 24px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', marginInline: 'auto' }}><FaMagic /> Generate New Tip</button>
-                        </div>
-                    )}
-                </div>
+        <div className="modal-overlay" onClick={() => setShowHealthTips(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth: '500px', textAlign: 'center'}}>
+            <div className="modal-header" style={{ justifyContent: 'center', position: 'relative' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <FaRobot size={28} color="#2563eb" />
+                <h2 style={{margin: 0}}>Medmitra AI Insight</h2>
+              </div>
+              <FaTimes className="modal-close" onClick={() => setShowHealthTips(false)} style={{position: 'absolute', right: 0}} />
             </div>
+
+            <div style={{ padding: '20px 0', minHeight: '200px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+              {loadingTip ? (
+                <>
+                  <div className="loading-spinner" style={{width: '40px', height: '40px', borderColor: '#2563eb transparent #2563eb transparent'}}></div>
+                  <p style={{marginTop: '15px', color: '#666', fontStyle: 'italic'}}>Analyzing health patterns...</p>
+                </>
+              ) : (
+                aiTip && (
+                  <div className="ai-result-card" style={{ animation: 'fadeIn 0.5s ease' }}>
+                    <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '15px' }}>
+                      {aiTip.intro}
+                    </p>
+                    
+                    <div style={{ 
+                      background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', 
+                      padding: '25px', 
+                      borderRadius: '16px',
+                      border: '1px solid #bfdbfe',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    }}>
+                      <div style={{ fontSize: '3rem', marginBottom: '10px' }}>{aiTip.icon}</div>
+                      <h3 style={{ color: '#1e40af', marginBottom: '10px', fontSize: '1.4rem' }}>{aiTip.category}</h3>
+                      <p style={{ color: '#1e3a8a', fontSize: '1.1rem', lineHeight: '1.6', fontWeight: '500' }}>
+                        "{aiTip.tip}"
+                      </p>
+                    </div>
+
+                    <button 
+                      onClick={generateAiTip}
+                      style={{
+                        marginTop: '25px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '12px 24px',
+                        background: '#2563eb',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '30px',
+                        fontSize: '1rem',
+                        cursor: 'pointer',
+                        marginInline: 'auto',
+                        transition: 'transform 0.2s'
+                      }}
+                      onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
+                      onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+                    >
+                      <FaMagic /> Generate New Tip
+                    </button>
+                  </div>
+                )
+              )}
+            </div>
+          </div>
         </div>
       )}
       
