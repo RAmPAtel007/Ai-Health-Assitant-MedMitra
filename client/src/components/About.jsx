@@ -56,7 +56,7 @@ const About = () => {
             <div className="logo-icon"><IoMedical /></div>
             <span className="logo-text">MedMitra</span>
           </div>
-          <button className="back-btn" onClick={() => navigate('/')}>
+          <button className="back-btn" onClick={() => navigate('/home')}>
             <IoArrowBack /> Back to Home
           </button>
         </header>
